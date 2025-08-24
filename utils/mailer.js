@@ -21,3 +21,39 @@ const sendMail = async (to, subject, html) => {
 };
 
 module.exports = sendMail;
+
+// SMTP transport setup with ZeptoMail
+// const nodemailer = require('nodemailer');
+
+// const transporter = nodemailer.createTransport({
+//   host: "smtp.zeptomail.com", // ZeptoMail SMTP host
+//   port: 587,                  // TLS port (465 for SSL if needed)
+//   secure: false,              // true if you use 465
+//   auth: {
+//     user: "your-generated-email-token", // NOT your email, use the token provided by ZeptoMail
+//     pass: "your-generated-token-secret"
+//   },
+//   tls: {
+//     rejectUnauthorized: false // sometimes needed for ZeptoMail
+//   }
+// });
+
+// const sendMail = async (to, subject, html) => {
+//   const mailOptions = {
+//     from: '"Tofar Logistics Agency" <no-reply@yourdomain.com>', 
+//     to,
+//     subject,
+//     html,
+//   };
+
+//   try {
+//     let info = await transporter.sendMail(mailOptions);
+//     console.log("Email sent: ", info.messageId);
+//     return info;
+//   } catch (error) {
+//     console.error("Error sending email:", error);
+//     throw error;
+//   }
+// };
+
+// module.exports = sendMail;
