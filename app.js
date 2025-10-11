@@ -10,6 +10,7 @@ connectDB();
 app.use(cors({
   origin: [
     'https://tofar-logistics-agency.netlify.app',
+    'https://tofarcargo.com',
     'http://localhost:5173'
   ], // Your frontend URLs
   credentials: true, // Allow cookies/auth headers to be sent
