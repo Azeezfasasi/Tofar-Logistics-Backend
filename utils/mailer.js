@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || process.env.BREVO_KEY;
-const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || process.env.ZOHO_EMAIL_USER || 'no-reply@yourdomain.com';
+const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || process.env.ZOHO_EMAIL_USER || 'info@tofarcargo.com';
 const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'Tofar Logistics Agency';
 
 if (!BREVO_API_KEY) {
@@ -38,8 +38,19 @@ const sendMail = async (to, subject, html) => {
 
   const url = 'https://api.brevo.com/v3/smtp/email';
 
-    const resp = await axios.post(url, payload, config);
-    return resp.data;
+    try {
+      const resp = await axios.post(url, payload, config);
+      return resp.data;
+    } catch (err) {
+      // Enhance error with Brevo response body when available
+      if (err.response && err.response.data) {
+        const e = new Error(`Brevo API error: ${JSON.stringify(err.response.data)}`);
+        e.code = err.code || 'BREVO_ERROR';
+        e.response = err.response.data;
+        throw e;
+      }
+      throw err;
+    }
   };
 
   module.exports = sendMail;
