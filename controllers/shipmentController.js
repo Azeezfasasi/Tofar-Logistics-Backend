@@ -252,18 +252,13 @@ exports.createShipment = async (req, res) => {
   try {
     // `authMiddleware` and `adminAuth` ensure only admins can reach this.
     const newShipment = new Shipment(req.body);
+    newShipment.trackingHistory.push({
+      status: 'pending',
+      location: newShipment.origin, // Optional
+      timestamp: new Date()
+    });
+
     const savedShipment = await newShipment.save();
-    // Add an initial tracking history entry so the public track endpoint returns something
-    try {
-      savedShipment.trackingHistory.push({
-        status: savedShipment.status || 'pending',
-        location: req.body.origin || savedShipment.origin || 'Unknown',
-        timestamp: new Date()
-      });
-      await savedShipment.save();
-    } catch (histErr) {
-      console.error('Failed to add initial tracking history:', histErr);
-    }
     
     // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Client) ---
     // const clientSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
@@ -273,7 +268,7 @@ exports.createShipment = async (req, res) => {
     // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Admin) ---
     // const adminSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
     // const adminBody = `A new shipment has been created in the system`;
-    // await sendAdminNotification(savedShipment, adminSubject, adminBody, req.user); 
+    // await sendAdminNotification(savedShipment, adminSubject, adminBody, req.user); // Pass req.user for audit trail below
     
     res.status(201).json(savedShipment);
   } catch (err) {
@@ -342,9 +337,23 @@ exports.changeShipmentStatus = async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Only Admins, employees and Agents can change shipment status.' });
     }
     
+    // const { id } = req.params;
+    // const { status } = req.body;
+    // const updatedShipment = await Shipment.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
+
     const { id } = req.params;
-    const { status } = req.body;
-    const updatedShipment = await Shipment.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
+    const { status, location } = req.body;
+    
+    const updatedShipment = await Shipment.findByIdAndUpdate(
+      id,
+      {
+        status: status,
+        // Push a new entry to the trackingHistory array
+        $push: { trackingHistory: { status: status, location: location, timestamp: new Date() } }
+      },
+      { new: true, runValidators: true }
+    );
+
     if (!updatedShipment) {
       return res.status(404).json({ message: 'Shipment not found' });
     }
@@ -359,15 +368,6 @@ exports.changeShipmentStatus = async (req, res) => {
     const adminBody = `The status of shipment #${updatedShipment.trackingNumber} has been updated to <strong>${updatedShipment.status}</strong>`;
     await sendAdminNotification(updatedShipment, adminSubject, adminBody, req.user);
     
-    // Append a new tracking history entry reflecting the status change
-    try {
-      const location = req.body.location || updatedShipment.origin || 'Unknown';
-      updatedShipment.trackingHistory.push({ status: updatedShipment.status, location, timestamp: new Date() });
-      await updatedShipment.save();
-    } catch (histErr) {
-      console.error('Failed to append tracking history on status change:', histErr);
-    }
-
     res.json(updatedShipment);
   } catch (err) {
     console.error('Error changing shipment status:', err); // Added detailed logging
