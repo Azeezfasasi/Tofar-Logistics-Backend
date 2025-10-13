@@ -195,10 +195,12 @@ const sendAdminNotification = async (shipment, subject, adminBody, reqUser = nul
     </table>
     `;
 
-    // Send email to each admin
-    for (const email of adminEmails) {
-      await sendMail(email, `Admin Notification: ${subject}`, htmlBody);
-      console.log(`Admin email sent to ${email} successfully.`);
+    // Send a single request to Brevo with all admin recipients
+    try {
+      await sendMail(adminEmails, `Admin Notification: ${subject}`, htmlBody);
+      console.log(`Admin emails sent to: ${adminEmails.join(', ')}`);
+    } catch (sendErr) {
+      console.error('Failed to send admin emails:', sendErr);
     }
 
   } catch (error) {

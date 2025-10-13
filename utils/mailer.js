@@ -1,59 +1,45 @@
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.zoho.com',
-  port: 465,
-  secure: true, // true for port 465, false for 587
-  auth: {
-    user: process.env.ZOHO_EMAIL_USER, // e.g., 'yourname@yourdomain.com'
-    pass: process.env.ZOHO_EMAIL_PASS,
-  },
-});
+const BREVO_API_KEY = process.env.BREVO_API_KEY || process.env.SENDINBLUE_API_KEY || process.env.BREVO_KEY;
+const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || process.env.ZOHO_EMAIL_USER || 'no-reply@yourdomain.com';
+const SENDER_NAME = process.env.BREVO_SENDER_NAME || 'Tofar Logistics Agency';
 
+if (!BREVO_API_KEY) {
+  console.warn('BREVO_API_KEY not set. Emails will fail unless a valid key is provided in environment.');
+}
+
+/**
+ * sendMail - send an email using Brevo (Sendinblue) transactional API
+ * @param {string} to - recipient email or comma separated list
+ * @param {string} subject - email subject
+ * @param {string} html - html body
+ */
 const sendMail = async (to, subject, html) => {
-  const mailOptions = {
-    from: `"Tofar Logistics Agency" <${process.env.ZOHO_EMAIL_USER}>`, // include a name
-    to,
+  if (!BREVO_API_KEY) {
+    throw new Error('BREVO_API_KEY not configured in environment');
+  }
+
+  const recipients = Array.isArray(to) ? to : String(to).split(',').map(s => s.trim()).filter(Boolean);
+
+  const payload = {
+    sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+    to: recipients.map(email => ({ email })),
     subject,
-    html,
+    htmlContent: html
   };
-  return transporter.sendMail(mailOptions);
-};
 
-module.exports = sendMail;
+  const config = {
+    headers: {
+      'api-key': BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  };
 
-// SMTP transport setup with ZeptoMail
-// const nodemailer = require('nodemailer');
+  const url = 'https://api.brevo.com/v3/smtp/email';
 
-// const transporter = nodemailer.createTransport({
-//   host: "smtp.zeptomail.com", // ZeptoMail SMTP host
-//   port: 587,                  // TLS port (465 for SSL if needed)
-//   secure: false,              // true if you use 465
-//   auth: {
-//     user: "your-generated-email-token", // NOT your email, use the token provided by ZeptoMail
-//     pass: "your-generated-token-secret"
-//   },
-//   tls: {
-//     rejectUnauthorized: false // sometimes needed for ZeptoMail
-//   }
-// });
+    const resp = await axios.post(url, payload, config);
+    return resp.data;
+  };
 
-// const sendMail = async (to, subject, html) => {
-//   const mailOptions = {
-//     from: '"Tofar Logistics Agency" <no-reply@yourdomain.com>', 
-//     to,
-//     subject,
-//     html,
-//   };
-
-//   try {
-//     let info = await transporter.sendMail(mailOptions);
-//     console.log("Email sent: ", info.messageId);
-//     return info;
-//   } catch (error) {
-//     console.error("Error sending email:", error);
-//     throw error;
-//   }
-// };
-
-// module.exports = sendMail;
+  module.exports = sendMail;
