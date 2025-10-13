@@ -241,6 +241,10 @@ exports.trackShipment = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: 'Shipment not found' });
     }
+    // Ensure trackingHistory is always present (avoid undefined for older records)
+    if (!shipment.trackingHistory) {
+      shipment.trackingHistory = [];
+    }
     res.json(shipment);
   } catch (err) {
     res.status(500).json({ message: err.message });
