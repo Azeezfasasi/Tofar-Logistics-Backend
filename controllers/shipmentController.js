@@ -52,7 +52,7 @@ const sendClientNotification = async (shipment, subject, body) => {
                 </table>
 
                 <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com/app/trackshipment'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com/app/trackshipment'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                     Track Your Shipment
                   </a>
                 </p>
@@ -174,7 +174,7 @@ const sendAdminNotification = async (shipment, subject, adminBody, reqUser = nul
                   </table>
 
                   <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                    <a href="${process.env.ADMIN_PANEL_URL || 'https://cargorealmandlogistics.com/app/dashboard'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                    <a href="${process.env.ADMIN_PANEL_URL || 'https://tofarcargo.com/app/dashboard'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                             Log in to Admin Panel
                     </a>
                   </p>
