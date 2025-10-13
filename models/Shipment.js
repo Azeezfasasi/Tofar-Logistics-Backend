@@ -32,7 +32,7 @@ const shipmentSchema = new mongoose.Schema({
     ],
     default: 'pending',
   },
-  items: [String],
+  items: { type: [String], default: [] },
   weight: Number,
   length: String,
   width: String,
@@ -47,8 +47,8 @@ const shipmentSchema = new mongoose.Schema({
   shipmentType: String,
   shipmentPurpose: String,
   shipmentFacility: String,
-  trackingHistory: [trackingHistorySchema],
-  replies: [replySchema],
+  trackingHistory: { type: [trackingHistorySchema], default: [] },
+  replies: { type: [replySchema], default: [] },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Shipment', shipmentSchema);
