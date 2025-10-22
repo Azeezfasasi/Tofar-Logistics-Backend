@@ -148,9 +148,10 @@ exports.editUser = async (req, res) => {
       return res.status(401).json({ message: 'Not authenticated. Please log in to update profile.' });
     }
 
-    // Ensure user can only edit their own profile unless they are admin
-    if (req.user.role !== 'admin' && userId !== req.user.id) {
-      console.error(`editUser: User ${req.user.id} attempted to edit profile of ${userId} without admin role.`); // DEBUG
+    // Ensure user can only edit their own profile unless they are admin or employee
+    const isPrivileged = req.user.role === 'admin' || req.user.role === 'employee';
+    if (!isPrivileged && userId !== req.user.id) {
+      console.error(`editUser: User ${req.user.id} with role=${req.user.role} attempted to edit profile of ${userId} without sufficient privileges.`); // DEBUG
       return res.status(403).json({ message: 'Not authorized to edit this user profile.' });
     }
 
