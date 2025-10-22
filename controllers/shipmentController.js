@@ -86,21 +86,19 @@ const sendClientNotification = async (shipment, subject, body) => {
 // Helper function to send email notifications to all admin users
 const sendAdminNotification = async (shipment, subject, adminBody, reqUser = null) => {
   try {
-    // Find all users with the 'admin' role
-    const admins = await User.find({ role: 'admin' });
-    // const dbAdminsAndEmployees = await User.find({ role: { $in: ['admin', 'employee'] } });
+    // Find all users with the 'admin' or 'employee' role
+    const recipients = await User.find({ role: { $in: ['admin', 'employee'] } });
 
-    if (!admins || admins.length === 0) {
-      console.warn('No admin users found to send notification.');
+    if (!recipients || recipients.length === 0) {
+      console.warn('No admin or employee users found to send notification.');
       return;
     }
 
-    const adminEmails = admins
-      .map(admin => admin.email)
-      .filter(email => email); // Filter out null/undefined emails
+    // Collect and dedupe emails
+    const recipientEmails = Array.from(new Set(recipients.map(u => u.email).filter(Boolean)));
 
-    if (adminEmails.length === 0) {
-      console.warn('No valid admin email addresses found to send notification.');
+    if (recipientEmails.length === 0) {
+      console.warn('No valid recipient email addresses found to send notification.');
       return;
     }
 
