@@ -11,10 +11,13 @@ app.use(cors({
   origin: [
     'https://tofar-logistics-agency.netlify.app',
     'https://tofarcargo.com',
+    'https://www.tofarcargo.com',
+    'http://www.tofarcargo.com',
     'http://localhost:5173'
   ], // Your frontend URLs
   credentials: true, // Allow cookies/auth headers to be sent
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'], // Explicitly allowed methods
+  // methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'], // Explicitly allowed methods
+   methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Explicitly allowed headers
   optionsSuccessStatus: 204, // Status for preflight requests
 }));
