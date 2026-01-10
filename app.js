@@ -13,6 +13,7 @@ app.use(cors({
     'https://tofarcargo.com',
     'https://www.tofarcargo.com',
     'http://www.tofarcargo.com',
+    'https://tofar-logistics-frontend.vercel.app',
     'http://localhost:5173'
   ], // Your frontend URLs
   credentials: true, // Allow cookies/auth headers to be sent
