@@ -58,7 +58,7 @@
 //                 </p>
 
 //                 <p style="margin-top: 25px; margin-bottom: 0; font-size: 16px;">Thank you for using our service.</p>
-//                   <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Tofar Logistics Agency Team</p>
+//                   <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Tofar Cargo Team</p>
 //               </td>
 //             </tr>
 //           </table>
@@ -67,7 +67,7 @@
 //             <tr>
 //               <td style="padding: 20px 30px; text-align: center; font-size: 12px; color: #777777;">
 //                 <p style="margin: 0;">This is an automated email. Please do not reply to this email.</p>
-//                   <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Tofar Logistics Agency. All rights reserved.</p>
+//                   <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Tofar Cargo and Logistics. All rights reserved.</p>
 //               </td>
 //             </tr>
 //           </table>
@@ -193,7 +193,7 @@
 //     </table>
 //     `;
 
-//     // Send a single request to Brevo with all admin/employee recipients
+//   // Send a single request to Brevo with all admin/employee recipients
 //     try {
 //       await sendMail(recipientEmails, `Admin Notification: ${subject}`, htmlBody);
 //       console.log(`Admin/Employee emails sent to: ${recipientEmails.join(', ')}`);
@@ -205,7 +205,6 @@
 //     console.error('Failed to send admin email notification:', error);
 //   }
 // };
-
 
 // // 1. Fetch all shipments (Admin/Agent/Employee)
 // exports.getAllShipments = async (req, res) => {
@@ -240,10 +239,6 @@
 //     const shipment = await Shipment.findOne({ trackingNumber }).select('-sender'); // Do not expose sender info publicly
 //     if (!shipment) {
 //       return res.status(404).json({ message: 'Shipment not found' });
-//     }
-//     // Ensure trackingHistory is always present (avoid undefined for older records)
-//     if (!shipment.trackingHistory) {
-//       shipment.trackingHistory = [];
 //     }
 //     res.json(shipment);
 //   } catch (err) {
@@ -465,7 +460,33 @@
 
 const Shipment = require('../models/Shipment');
 const sendMail = require('../utils/mailer');
-const User = require('../models/User'); 
+const User = require('../models/User');
+const QRCode = require('qrcode');
+
+// Helper function to generate and save QR code for a shipment
+const generateQRCodeForShipment = async (shipment) => {
+  try {
+    if (!shipment.trackingNumber) {
+      console.error('Shipment has no tracking number. Cannot generate QR code.');
+      return false;
+    }
+
+    // Don't regenerate if already exists
+    if (shipment.qrCodeUrl) {
+      return true;
+    }
+
+    const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com'}/app/trackshipment?tracking=${shipment.trackingNumber}`;
+    const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
+    shipment.qrCodeUrl = qrCodeUrl;
+    await shipment.save();
+    console.log(`QR code generated for shipment: ${shipment.trackingNumber}`);
+    return true;
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    return false;
+  }
+};
 
 // Helper function to send email notifications to the shipment sender (client)
 const sendClientNotification = async (shipment, subject, body) => {
@@ -517,13 +538,13 @@ const sendClientNotification = async (shipment, subject, body) => {
                 </table>
 
                 <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com/app/trackshipment'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com/app/trackshipment'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                     Track Your Shipment
                   </a>
                 </p>
 
                 <p style="margin-top: 25px; margin-bottom: 0; font-size: 16px;">Thank you for using our service.</p>
-                  <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Tofar Cargo Team</p>
+                  <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Cargo Realm Team</p>
               </td>
             </tr>
           </table>
@@ -532,7 +553,7 @@ const sendClientNotification = async (shipment, subject, body) => {
             <tr>
               <td style="padding: 20px 30px; text-align: center; font-size: 12px; color: #777777;">
                 <p style="margin: 0;">This is an automated email. Please do not reply to this email.</p>
-                  <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Tofar Cargo and Logistics. All rights reserved.</p>
+                  <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Cargo Realm and Logistics. All rights reserved.</p>
               </td>
             </tr>
           </table>
@@ -637,7 +658,7 @@ const sendAdminNotification = async (shipment, subject, adminBody, reqUser = nul
                   </table>
 
                   <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                    <a href="${process.env.ADMIN_PANEL_URL || 'https://tofarcargo.com/app/dashboard'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                    <a href="${process.env.ADMIN_PANEL_URL || 'https://cargorealmandlogistics.com/app/dashboard'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                             Log in to Admin Panel
                     </a>
                   </p>
@@ -680,6 +701,16 @@ exports.getAllShipments = async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Only Admins, Agents, and Employees can view all shipments.' });
     }
     const shipments = await Shipment.find().populate('sender', 'email');
+    
+    // Auto-generate missing QR codes (non-blocking)
+    shipments.forEach(shipment => {
+      if (!shipment.qrCodeUrl) {
+        generateQRCodeForShipment(shipment).catch(err => 
+          console.error(`Failed to generate QR for ${shipment.trackingNumber}:`, err)
+        );
+      }
+    });
+    
     res.json(shipments);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -691,6 +722,16 @@ exports.getMyShipments = async (req, res) => {
   try {
     // Find shipments where the authenticated user is the sender
     const shipments = await Shipment.find({ sender: req.user.id }).populate('sender', 'email');
+    
+    // Auto-generate missing QR codes (non-blocking)
+    shipments.forEach(shipment => {
+      if (!shipment.qrCodeUrl) {
+        generateQRCodeForShipment(shipment).catch(err => 
+          console.error(`Failed to generate QR for ${shipment.trackingNumber}:`, err)
+        );
+      }
+    });
+    
     res.json(shipments);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -705,6 +746,14 @@ exports.trackShipment = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: 'Shipment not found' });
     }
+    
+    // Auto-generate QR code if missing (non-blocking)
+    if (!shipment.qrCodeUrl) {
+      generateQRCodeForShipment(shipment).catch(err => 
+        console.error(`Failed to generate QR for ${shipment.trackingNumber}:`, err)
+      );
+    }
+    
     res.json(shipment);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -723,6 +772,18 @@ exports.createShipment = async (req, res) => {
     });
 
     const savedShipment = await newShipment.save();
+    
+    // --- GENERATE QR CODE ---
+    try {
+      const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com'}/app/trackshipment?tracking=${savedShipment.trackingNumber}`;
+      const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
+      savedShipment.qrCodeUrl = qrCodeUrl;
+      await savedShipment.save();
+      console.log(`QR code generated for shipment: ${savedShipment.trackingNumber}`);
+    } catch (qrError) {
+      console.error('Error generating QR code:', qrError);
+      // Continue without QR code if generation fails
+    }
     
     // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Client) ---
     const clientSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
@@ -918,6 +979,55 @@ exports.replyToShipment = async (req, res) => {
     res.json(shipment);
   } catch (err) {
     console.error('Reply error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 12. Batch generate QR codes for all shipments (Admin only)
+exports.generateMissingQRCodes = async (req, res) => {
+  try {
+    // Only admins can trigger batch QR code generation
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Only admins can generate QR codes.' });
+    }
+
+    const shipments = await Shipment.find({ qrCodeUrl: null }); // Find shipments without QR codes
+    
+    if (shipments.length === 0) {
+      return res.json({ 
+        message: 'All shipments already have QR codes!', 
+        generatedCount: 0,
+        totalChecked: 0
+      });
+    }
+
+    let generatedCount = 0;
+    const errors = [];
+
+    // Generate QR codes for all shipments without them
+    for (const shipment of shipments) {
+      try {
+        const success = await generateQRCodeForShipment(shipment);
+        if (success) {
+          generatedCount++;
+        }
+      } catch (error) {
+        errors.push({
+          trackingNumber: shipment.trackingNumber,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      message: `QR code generation completed. ${generatedCount} out of ${shipments.length} shipments processed.`,
+      generatedCount,
+      totalChecked: shipments.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+
+  } catch (err) {
+    console.error('Batch QR generation error:', err);
     res.status(500).json({ message: err.message });
   }
 };
