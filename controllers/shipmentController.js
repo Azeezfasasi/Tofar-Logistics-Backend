@@ -241,16 +241,6 @@ exports.getAllShipments = async (req, res) => {
       return res.status(403).json({ message: 'Access denied. Only Admins, Agents, and Employees can view all shipments.' });
     }
     const shipments = await Shipment.find().populate('sender', 'email');
-    
-    // Auto-generate missing QR codes (non-blocking)
-    shipments.forEach(shipment => {
-      if (!shipment.qrCodeUrl) {
-        generateQRCodeForShipment(shipment).catch(err => 
-          console.error(`Failed to generate QR for ${shipment.trackingNumber}:`, err)
-        );
-      }
-    });
-    
     res.json(shipments);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -262,16 +252,6 @@ exports.getMyShipments = async (req, res) => {
   try {
     // Find shipments where the authenticated user is the sender
     const shipments = await Shipment.find({ sender: req.user.id }).populate('sender', 'email');
-    
-    // Auto-generate missing QR codes (non-blocking)
-    shipments.forEach(shipment => {
-      if (!shipment.qrCodeUrl) {
-        generateQRCodeForShipment(shipment).catch(err => 
-          console.error(`Failed to generate QR for ${shipment.trackingNumber}:`, err)
-        );
-      }
-    });
-    
     res.json(shipments);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -286,14 +266,6 @@ exports.trackShipment = async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ message: 'Shipment not found' });
     }
-    
-    // Auto-generate QR code if missing (non-blocking)
-    if (!shipment.qrCodeUrl) {
-      generateQRCodeForShipment(shipment).catch(err => 
-        console.error(`Failed to generate QR for ${shipment.trackingNumber}:`, err)
-      );
-    }
-    
     res.json(shipment);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -523,7 +495,44 @@ exports.replyToShipment = async (req, res) => {
   }
 };
 
-// 12. Batch generate QR codes for all shipments (Admin only)
+// 12. Regenerate QR code for a specific shipment (Admin/Sender)
+exports.regenerateQRCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const shipment = await Shipment.findById(id).populate('sender', 'email');
+    
+    if (!shipment) {
+      return res.status(404).json({ message: 'Shipment not found' });
+    }
+
+    // Check if user is an admin or the sender of the shipment
+    const isAuthorized = req.user.role === 'admin' || shipment.sender.toString() === req.user.id;
+    if (!isAuthorized) {
+      return res.status(403).json({ message: 'Access denied. You can only regenerate QR codes for your own shipments.' });
+    }
+
+    try {
+      const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com'}/app/trackshipment?tracking=${shipment.trackingNumber}`;
+      const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
+      shipment.qrCodeUrl = qrCodeUrl;
+      await shipment.save();
+      
+      console.log(`QR code regenerated for shipment: ${shipment.trackingNumber}`);
+      res.json({
+        message: `QR code successfully regenerated for shipment #${shipment.trackingNumber}`,
+        shipment
+      });
+    } catch (qrError) {
+      console.error('Error regenerating QR code:', qrError);
+      res.status(500).json({ message: 'Failed to regenerate QR code', error: qrError.message });
+    }
+  } catch (err) {
+    console.error('Regenerate QR error:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 13. Batch generate QR codes for all shipments (Admin only)
 exports.generateMissingQRCodes = async (req, res) => {
   try {
     // Only admins can trigger batch QR code generation
