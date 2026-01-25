@@ -16,7 +16,7 @@ const generateQRCodeForShipment = async (shipment) => {
       return true;
     }
 
-    const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com'}/app/trackshipment?tracking=${shipment.trackingNumber}`;
+    const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com'}/app/trackshipment?tracking=${shipment.trackingNumber}`;
     const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
     shipment.qrCodeUrl = qrCodeUrl;
     await shipment.save();
@@ -78,13 +78,13 @@ const sendClientNotification = async (shipment, subject, body) => {
                 </table>
 
                 <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com/app/trackshipment'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://www.tofarcargo.com/app/trackshipment'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                     Track Your Shipment
                   </a>
                 </p>
 
                 <p style="margin-top: 25px; margin-bottom: 0; font-size: 16px;">Thank you for using our service.</p>
-                  <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Cargo Realm Team</p>
+                  <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Tofar Logistics Team</p>
               </td>
             </tr>
           </table>
@@ -93,7 +93,7 @@ const sendClientNotification = async (shipment, subject, body) => {
             <tr>
               <td style="padding: 20px 30px; text-align: center; font-size: 12px; color: #777777;">
                 <p style="margin: 0;">This is an automated email. Please do not reply to this email.</p>
-                  <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Cargo Realm and Logistics. All rights reserved.</p>
+                  <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Tofar Logistics. All rights reserved.</p>
               </td>
             </tr>
           </table>
@@ -198,7 +198,7 @@ const sendAdminNotification = async (shipment, subject, adminBody, reqUser = nul
                   </table>
 
                   <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                    <a href="${process.env.ADMIN_PANEL_URL || 'https://cargorealmandlogistics.com/app/dashboard'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                    <a href="${process.env.ADMIN_PANEL_URL || 'https://tofarcargo.com/app/dashboard'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                             Log in to Admin Panel
                     </a>
                   </p>
@@ -315,7 +315,7 @@ exports.createShipment = async (req, res) => {
     
     // --- GENERATE QR CODE ---
     try {
-      const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://cargorealmandlogistics.com'}/app/trackshipment?tracking=${savedShipment.trackingNumber}`;
+      const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com'}/app/trackshipment?tracking=${savedShipment.trackingNumber}`;
       const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
       savedShipment.qrCodeUrl = qrCodeUrl;
       await savedShipment.save();
