@@ -104,7 +104,7 @@ exports.submitContactForm = async (req, res) => {
                       </blockquote>
 
                     <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
-                      <a href="${process.env.ADMIN_PANEL_URL || 'https://cargorealmandlogistics.com/app/account/contactformresponses'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                      <a href="${process.env.ADMIN_PANEL_URL || 'https://tofarcargo.com/app/account/contactformresponses'}" style="display: inline-block; background-color: #007bff; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
                         Log in to Admin Panel
                       </a>
                     </p>

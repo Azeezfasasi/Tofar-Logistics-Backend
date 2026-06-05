@@ -396,6 +396,15 @@ exports.createShipment = async (req, res) => {
     const adminSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
     const adminBody = `A new shipment has been created in the system`;
     await sendAdminNotification(savedShipment, adminSubject, adminBody, req.user); // Pass req.user for audit trail below
+
+    // --- SMS NOTIFICATION: SHIPMENT CREATED (Sender & Receiver) ---
+    try {
+      const smsResults = await sendShipmentCreationSMS(savedShipment);
+      console.log('[Shipment Creation] SMS notifications sent:', smsResults);
+    } catch (smsError) {
+      console.error('[Shipment Creation] Error sending SMS:', smsError.message);
+      // Continue even if SMS fails - don't block shipment creation
+    }
     
     res.status(201).json(savedShipment);
   } catch (err) {
@@ -430,15 +439,6 @@ exports.editShipment = async (req, res) => {
     const adminSubject = `Shipment Updated: #${updatedShipment.trackingNumber}`;
     const adminBody = `Shipment details for #${updatedShipment.trackingNumber} have been updated in the system`;
     await sendAdminNotification(updatedShipment, adminSubject, adminBody, req.user);
-
-    // --- SMS NOTIFICATION: SHIPMENT CREATED ---
-    try {
-      const smsResults = await sendShipmentCreationSMS(savedShipment);
-      console.log('[Shipment Creation] SMS notifications sent:', smsResults);
-    } catch (smsError) {
-      console.error('[Shipment Creation] Error sending SMS:', smsError.message);
-      // Continue even if SMS fails - don't block shipment creation
-    }
     
     res.json(updatedShipment);
   } catch (err) {

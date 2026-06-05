@@ -6,47 +6,47 @@
 const smsTemplates = {
   // Shipment Created - Sender Notification
   SHIPMENT_CREATED_SENDER: (trackingNumber, recipientName, origin, destination) => {
-    return `Dear Sender, your shipment ${trackingNumber} to ${recipientName} has been created. From: ${origin} To: ${destination}. Track: cargorealmandlogistics.com`;
+    return `Dear Sender, your shipment ${trackingNumber} to ${recipientName} has been created. From: ${origin} To: ${destination}. Track: tofarcargo,com`;
   },
 
   // Shipment Created - Recipient Notification
   SHIPMENT_CREATED_RECIPIENT: (trackingNumber, senderName, origin, destination) => {
-    return `Dear Recipient, you have an incoming shipment ${trackingNumber} from ${senderName}. From: ${origin} To: ${destination}. Track: cargorealmandlogistics.com`;
+    return `Dear Recipient, you have an incoming shipment ${trackingNumber} from ${senderName}. From: ${origin} To: ${destination}. Track: tofarcargo,com`;
   },
 
   // Shipment Status Updated
   SHIPMENT_STATUS_UPDATED: (trackingNumber, newStatus, location) => {
-    return `Shipment ${trackingNumber} status updated to ${newStatus}. Location: ${location}. Track: cargorealmandlogistics.com`;
+    return `Shipment ${trackingNumber} status updated to ${newStatus}. Location: ${location}. Track: tofarcargo,com`;
   },
 
   // Shipment Out for Delivery
   SHIPMENT_OUT_FOR_DELIVERY: (trackingNumber, estimatedDeliveryTime) => {
-    return `Shipment ${trackingNumber} is out for delivery today. ETA: ${estimatedDeliveryTime}. Track: cargorealmandlogistics.com`;
+    return `Shipment ${trackingNumber} is out for delivery today. ETA: ${estimatedDeliveryTime}. Track: tofarcargo,com`;
   },
 
   // Shipment Delivered
   SHIPMENT_DELIVERED: (trackingNumber, deliveryDate) => {
-    return `Shipment ${trackingNumber} has been delivered on ${deliveryDate}. Thank you for using CargoRealm! Track: cargorealmandlogistics.com`;
+    return `Shipment ${trackingNumber} has been delivered on ${deliveryDate}. Thank you for using CargoRealm! Track: tofarcargo,com`;
   },
 
   // Shipment Delayed
   SHIPMENT_DELAYED: (trackingNumber, reason) => {
-    return `Shipment ${trackingNumber} is delayed. Reason: ${reason}. We apologize for the inconvenience. Track: cargorealmandlogistics.com`;
+    return `Shipment ${trackingNumber} is delayed. Reason: ${reason}. We apologize for the inconvenience. Track: tofarcargo,com`;
   },
 
   // Shipment Cancelled
   SHIPMENT_CANCELLED: (trackingNumber, reason) => {
-    return `Shipment ${trackingNumber} has been cancelled. Reason: ${reason}. Contact support for refund. Track: cargorealmandlogistics.com`;
+    return `Shipment ${trackingNumber} has been cancelled. Reason: ${reason}. Contact support for refund. Track: tofarcargo,com`;
   },
 
   // Shipment Exception/Issue
   SHIPMENT_EXCEPTION: (trackingNumber, issue) => {
-    return `Alert: Shipment ${trackingNumber} encountered an issue: ${issue}. Contact support immediately. Track: cargorealmandlogistics.com`;
+    return `Alert: Shipment ${trackingNumber} encountered an issue: ${issue}. Contact support immediately. Track: tofarcargo,com`;
   },
 
   // Generic Status Notification
   GENERIC_NOTIFICATION: (trackingNumber, message) => {
-    return `${message} Tracking: ${trackingNumber}. Track: cargorealmandlogistics.com`;
+    return `${message} Tracking: ${trackingNumber}. Track: tofarcargo,com`;
   },
 };
 
