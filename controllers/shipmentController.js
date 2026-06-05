@@ -32,20 +32,22 @@ const generateQRCodeForShipment = async (shipment) => {
 // Helper function to send email notifications to the shipment sender (client)
 const sendClientNotification = async (shipment, subject, body) => {
   try {
-    if (!shipment.sender) {
-      console.error('Shipment has no sender. Skipping client email notification.');
+    // Use senderEmail if available, otherwise try to fetch from User model
+    let emailTo = shipment.senderEmail;
+    
+    // If no direct email, try to fetch from User model
+    if (!emailTo && shipment.sender) {
+      const sender = await User.findById(shipment.sender);
+      if (sender && sender.email) {
+        emailTo = sender.email;
+      }
+    }
+    
+    // If still no email, skip notification
+    if (!emailTo) {
+      console.log('No email address found for shipment sender. Skipping client notification.');
       return;
     }
-
-    // Fetch the sender's email address using the User model
-    // Populate sender to get the email if it's not already populated
-    const sender = await User.findById(shipment.sender);
-    if (!sender || !sender.email) {
-      console.error('Sender not found or email is missing. Skipping client email notification.');
-      return;
-    }
-
-    const emailTo = sender.email;
     const htmlBody = `
     <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 15px rgba(0, 0, 0, 0.05); margin: 20px auto;">
       <tr>
@@ -107,6 +109,81 @@ const sendClientNotification = async (shipment, subject, body) => {
     console.log(`Client email sent to ${emailTo} successfully.`);
   } catch (error) {
     console.error('Failed to send client email notification:', error);
+  }
+};
+
+// Helper function to send email notifications to shipment receiver
+const sendReceiverNotification = async (shipment, subject, body) => {
+  try {
+    // Use receiverEmail if available
+    const emailTo = shipment.receiverEmail;
+    
+    if (!emailTo) {
+      console.log('No email address found for shipment receiver. Skipping receiver notification.');
+      return;
+    }
+
+    const htmlBody = `
+    <table role="presentation" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 0 15px rgba(0, 0, 0, 0.05); margin: 20px auto;">
+      <tr>
+        <td style="padding: 0;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="background-color: #28a745; color: #ffffff; padding: 25px 20px; text-align: center; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                <h2 style="margin: 0; font-size: 28px; font-weight: bold;">${subject}</h2>
+            </td>
+            </tr>
+          </table>
+
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding: 20px 30px;">
+                <p style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">Hello ${shipment.recipientName},</p>
+                <p style="margin-bottom: 15px; font-size: 16px;">${body}</p>
+
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top: 20px; border-collapse: collapse; font-size: 15px;">
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #eeeeee; width: 40%; vertical-align: top;"><strong style="color: #555555;">Tracking Number:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #eeeeee; width: 60%; vertical-align: top;">${shipment.trackingNumber}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #eeeeee; width: 40%; vertical-align: top;"><strong style="color: #555555;">Current Status:</strong></td>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #eeeeee; width: 60%; vertical-align: top;">${shipment.status}</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2" style="padding: 8px 0;"></td>
+                  </tr>
+                </table>
+
+                <p style="margin-top: 25px; margin-bottom: 0; text-align: center;">
+                  <a href="${process.env.CLIENT_TRACKING_URL || 'https://www.tofarcargo.com/app/trackshipment'}" style="display: inline-block; background-color: #28a745; color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                    Track Your Shipment
+                  </a>
+                </p>
+
+                <p style="margin-top: 25px; margin-bottom: 0; font-size: 16px;">Thank you for choosing our service.</p>
+                  <p style="margin-top: 5px; margin-bottom: 0; font-size: 16px; font-weight: bold;">The Tofar Logistics Team</p>
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="padding: 20px 30px; text-align: center; font-size: 12px; color: #777777;">
+                <p style="margin: 0;">This is an automated email. Please do not reply to this email.</p>
+                  <p style="margin: 5px 0 0;">&copy; ${new Date().getFullYear()} Tofar Logistics. All rights reserved.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    `;
+
+    await sendMail(emailTo, subject, htmlBody);
+    console.log(`Receiver email sent to ${emailTo} successfully.`);
+  } catch (error) {
+    console.error('Failed to send receiver email notification:', error);
   }
 };
 
@@ -305,10 +382,15 @@ exports.createShipment = async (req, res) => {
       // Continue without QR code if generation fails
     }
     
-    // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Client) ---
+    // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Client/Sender) ---
     const clientSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
     const clientBody = `A new shipment has been created for you with the tracking number ${savedShipment.trackingNumber}.`;
     await sendClientNotification(savedShipment, clientSubject, clientBody);
+
+    // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Receiver) ---
+    const receiverSubject = `Shipment On The Way: #${savedShipment.trackingNumber}`;
+    const receiverBody = `A shipment has been created for you. You will receive it at the destination address with tracking number ${savedShipment.trackingNumber}. Use the link below to track your shipment in real-time.`;
+    await sendReceiverNotification(savedShipment, receiverSubject, receiverBody);
 
     // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Admin) ---
     const adminSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
