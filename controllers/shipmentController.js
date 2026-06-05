@@ -277,7 +277,14 @@ exports.trackShipment = async (req, res) => {
 exports.createShipment = async (req, res) => {
   try {
     // `authMiddleware` and `adminAuth` ensure only admins can reach this.
-    const newShipment = new Shipment(req.body);
+    // const newShipment = new Shipment(req.body);
+    // Sanitize sender field: convert empty string to null
+    const sanitizedData = { ...req.body };
+    if (sanitizedData.sender === '' || sanitizedData.sender === null || sanitizedData.sender === undefined) {
+      sanitizedData.sender = null;
+    }
+    
+    const newShipment = new Shipment(sanitizedData);
     newShipment.trackingHistory.push({
       status: 'pending',
       location: newShipment.origin, // Optional
