@@ -2,6 +2,7 @@ const Shipment = require('../models/Shipment');
 const sendMail = require('../utils/mailer');
 const User = require('../models/User');
 const QRCode = require('qrcode');
+const { sendShipmentCreationSMS, sendShipmentStatusUpdateSMS } = require('../utils/shipmentSmsHelper');
 
 // Helper function to generate and save QR code for a shipment
 const generateQRCodeForShipment = async (shipment) => {
@@ -340,6 +341,15 @@ exports.editShipment = async (req, res) => {
     const adminSubject = `Shipment Updated: #${updatedShipment.trackingNumber}`;
     const adminBody = `Shipment details for #${updatedShipment.trackingNumber} have been updated in the system`;
     await sendAdminNotification(updatedShipment, adminSubject, adminBody, req.user);
+
+    // --- SMS NOTIFICATION: SHIPMENT CREATED ---
+    try {
+      const smsResults = await sendShipmentCreationSMS(savedShipment);
+      console.log('[Shipment Creation] SMS notifications sent:', smsResults);
+    } catch (smsError) {
+      console.error('[Shipment Creation] Error sending SMS:', smsError.message);
+      // Continue even if SMS fails - don't block shipment creation
+    }
     
     res.json(updatedShipment);
   } catch (err) {
@@ -404,6 +414,15 @@ exports.changeShipmentStatus = async (req, res) => {
     const adminSubject = `Status Changed for Shipment: #${updatedShipment.trackingNumber} to ${updatedShipment.status}`;
     const adminBody = `The status of shipment #${updatedShipment.trackingNumber} has been updated to <strong>${updatedShipment.status}</strong>`;
     await sendAdminNotification(updatedShipment, adminSubject, adminBody, req.user);
+
+    // --- SMS NOTIFICATION: STATUS CHANGED ---
+    try {
+      const smsResults = await sendShipmentStatusUpdateSMS(updatedShipment, status, location);
+      console.log('[Status Update] SMS notifications sent:', smsResults);
+    } catch (smsError) {
+      console.error('[Status Update] Error sending SMS:', smsError.message);
+      // Continue even if SMS fails - don't block status update
+    }
     
     res.json(updatedShipment);
   } catch (err) {

@@ -28,6 +28,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Register all routes after app is initialized
+app.use('/api/test', require('./routes/testRoutes'));
 app.use('/api/newsletter', require('./routes/newsletterRoutes'));
 app.use('/api/donations', require('./routes/donationRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
@@ -41,6 +42,7 @@ app.use('/api/shipments', require('./routes/shipmentRoutes'));
 app.use('/api/facilities', require('./routes/facilityRoutes'));
 app.use('/api/shipment-statuses', require('./routes/shipmentStatusRoutes'));
 app.use('/api/messageslides', require('./routes/meesageslidesRoutes'));
+app.use('/api/sms', require('./routes/smsRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Welcome to Tofar Logistics Agency!');
