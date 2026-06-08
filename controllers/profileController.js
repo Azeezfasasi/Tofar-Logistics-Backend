@@ -152,9 +152,8 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset.' });
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    // Set new password (don't hash here - let the pre-save hook handle it)
+    user.password = newPassword;
     user.resetToken = undefined; // Clear the reset token
     user.resetTokenExpiry = undefined; // Clear the expiry
     await user.save();
@@ -217,10 +216,9 @@ exports.editUser = async (req, res) => {
     // Handle password change if provided (ensure it's not empty string if not intended)
     if (updates.password) {
         if (updates.password.trim() === '') {
-            delete updates.password; // Don't try to hash an empty password
-        } else {
-            updates.password = await bcrypt.hash(updates.password, 10);
+            delete updates.password; // Don't try to update with empty password
         }
+        // Don't hash here - let the pre-save hook handle it
     }
 
     // Handle profileImageUrl clearing: if frontend sends empty string, set to null
@@ -302,9 +300,8 @@ exports.changeUserPasswordByAdmin = async (req, res) => {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    userToUpdate.password = hashedPassword;
+    // Set the new password (don't hash here - let the pre-save hook handle it)
+    userToUpdate.password = newPassword;
     await userToUpdate.save();
 
     // Optional: Send a notification email to the user whose password was changed
