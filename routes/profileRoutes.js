@@ -8,6 +8,7 @@ const cloudinaryUpload = require('../middleware/uploadMiddleware');
 router.post('/register', profileController.register);
 router.post('/login', profileController.login);
 router.post('/forgot-password', profileController.forgotPassword);
+router.post('/reset-password', profileController.resetPassword);
 
 // Protected routes (require authentication)
 router.get('/me', authenticate, profileController.getMe);

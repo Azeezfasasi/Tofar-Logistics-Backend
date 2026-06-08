@@ -107,11 +107,70 @@ exports.forgotPassword = async (req, res) => {
     user.resetToken = token;
     user.resetTokenExpiry = Date.now() + 3600000;
     await user.save();
-    const resetLink = `${process.env.BASE_URL}/reset-password/${token}`;
+    
+    // Use FRONTEND_URL or BASE_URL, with fallback to localhost
+    const baseUrl = process.env.FRONTEND_URL || process.env.BASE_URL || 'http://localhost:5173';
+    const resetLink = `${baseUrl}/reset-password/${token}`;
+    
     await sendMail(email, 'Password Reset', `<p>Reset your password: <a href='${resetLink}'>Click here</a></p>`);
     res.json({ message: 'Password reset email sent' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// New endpoint to handle password reset with token
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required.' });
+    }
+
+    // Verify the JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid or expired reset token.' });
+    }
+
+    // Find user by ID from token
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // Verify resetToken matches (additional security check)
+    if (user.resetToken !== token) {
+      return res.status(400).json({ message: 'Invalid reset token.' });
+    }
+
+    // Check if token has expired
+    if (user.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ message: 'Reset token has expired. Please request a new password reset.' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetToken = undefined; // Clear the reset token
+    user.resetTokenExpiry = undefined; // Clear the expiry
+    await user.save();
+
+    await sendMail(user.email, 'Password Reset Successfully',
+      `<p>Hi ${user.name},</p>
+       <p>Your password for Tofar Logistics Agency account has been reset successfully.</p>
+       <p>If you did not request this change, please contact support immediately.</p>
+       <p>Thank you,</p>
+       <p>Tofar Logistics Agency Team</p>`
+    );
+
+    res.json({ message: 'Password reset successfully.' });
+  } catch (err) {
+    console.error('Error resetting password:', err.message);
+    res.status(500).json({ message: 'Server error resetting password.' });
   }
 };
 
