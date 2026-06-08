@@ -17,7 +17,13 @@ const generateQRCodeForShipment = async (shipment) => {
       return true;
     }
 
-    const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com'}/app/trackshipment?tracking=${shipment.trackingNumber}`;
+    // Use CLIENT_TRACKING_URL from env, with fallback to production domain
+    // Ensure the URL includes the base domain and tracking endpoint
+    const baseUrl = process.env.CLIENT_TRACKING_URL || process.env.FRONTEND_URL || 'https://tofarcargo.com';
+    const trackingUrl = `${baseUrl}/app/trackshipment?tracking=${shipment.trackingNumber}`;
+    
+    console.log(`Generating QR code with URL: ${trackingUrl}`);
+    
     const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
     shipment.qrCodeUrl = qrCodeUrl;
     await shipment.save();
@@ -371,16 +377,7 @@ exports.createShipment = async (req, res) => {
     const savedShipment = await newShipment.save();
     
     // --- GENERATE QR CODE ---
-    try {
-      const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com'}/app/trackshipment?tracking=${savedShipment.trackingNumber}`;
-      const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
-      savedShipment.qrCodeUrl = qrCodeUrl;
-      await savedShipment.save();
-      console.log(`QR code generated for shipment: ${savedShipment.trackingNumber}`);
-    } catch (qrError) {
-      console.error('Error generating QR code:', qrError);
-      // Continue without QR code if generation fails
-    }
+    await generateQRCodeForShipment(savedShipment);
     
     // --- EMAIL NOTIFICATION: SHIPMENT CREATED (Client/Sender) ---
     const clientSubject = `New Shipment Created: #${savedShipment.trackingNumber}`;
@@ -620,7 +617,8 @@ exports.regenerateQRCode = async (req, res) => {
     }
 
     try {
-      const trackingUrl = `${process.env.CLIENT_TRACKING_URL || 'https://tofarcargo.com'}/app/trackshipment?tracking=${shipment.trackingNumber}`;
+      const baseUrl = process.env.CLIENT_TRACKING_URL || process.env.FRONTEND_URL || 'https://tofarcargo.com';
+      const trackingUrl = `${baseUrl}/app/trackshipment?tracking=${shipment.trackingNumber}`;
       const qrCodeUrl = await QRCode.toDataURL(trackingUrl);
       shipment.qrCodeUrl = qrCodeUrl;
       await shipment.save();
