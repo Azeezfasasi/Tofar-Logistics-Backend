@@ -14,13 +14,16 @@ app.use(cors({
     'https://www.tofarcargo.com',
     'http://www.tofarcargo.com',
     'https://tofar-logistics-frontend.vercel.app',
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:8080',
+    '*' // Allow iOS app requests (in-app browsers)
   ], // Your frontend URLs
   credentials: true, // Allow cookies/auth headers to be sent
   // methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'], // Explicitly allowed methods
    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Explicitly allowed headers
-  optionsSuccessStatus: 204, // Status for preflight requests
+  optionsSuccessStatus: 200, // Status for preflight requests (iOS requirement)
 }));
 
 // Fix for large base64 uploads
@@ -46,6 +49,15 @@ app.use('/api/sms', require('./routes/smsRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Welcome to Tofar Logistics Agency!');
+});
+
+// Wake-up endpoint - keeps Render.com backend alive
+app.get('/api/wakeup', (req, res) => {
+  res.status(200).json({ 
+    status: 'alive', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
 const PORT = process.env.PORT || 5000;
