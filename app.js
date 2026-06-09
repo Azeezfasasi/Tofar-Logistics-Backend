@@ -20,9 +20,8 @@ app.use(cors({
     '*' // Allow iOS app requests (in-app browsers)
   ], // Your frontend URLs
   credentials: true, // Allow cookies/auth headers to be sent
-  // methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'], // Explicitly allowed methods
-   methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly allowed methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Explicitly allowed headers
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Pragma', 'Expires'], // Explicitly allowed headers
   optionsSuccessStatus: 200, // Status for preflight requests (iOS requirement)
 }));
 
@@ -32,10 +31,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Add explicit headers for iOS compatibility
 app.use((req, res, next) => {
-  res.header('Content-Type', 'application/json; charset=utf-8');
   res.header('Connection', 'keep-alive');
   res.header('Keep-Alive', 'timeout=5, max=100');
-  res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });
 
