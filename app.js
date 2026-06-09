@@ -30,6 +30,15 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Add explicit headers for iOS compatibility
+app.use((req, res, next) => {
+  res.header('Content-Type', 'application/json; charset=utf-8');
+  res.header('Connection', 'keep-alive');
+  res.header('Keep-Alive', 'timeout=5, max=100');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
 // Register all routes after app is initialized
 app.use('/api/test', require('./routes/testRoutes'));
 app.use('/api/newsletter', require('./routes/newsletterRoutes'));
@@ -53,11 +62,15 @@ app.get('/', (req, res) => {
 
 // Wake-up endpoint - keeps Render.com backend alive
 app.get('/api/wakeup', (req, res) => {
-  res.status(200).json({ 
-    status: 'alive', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
+  res.status(200)
+    .set('Content-Type', 'application/json; charset=utf-8')
+    .set('Connection', 'keep-alive')
+    .json({ 
+      status: 'alive', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'production'
+    });
 });
 
 const PORT = process.env.PORT || 5000;
