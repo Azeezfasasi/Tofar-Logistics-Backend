@@ -12,13 +12,42 @@ const formatDateForEmail = (date) => {
   });
 };
 
+// Helper function to get all admin and employee emails
+const getAdminAndEmployeeEmails = async () => {
+  try {
+    const users = await User.find(
+      { role: { $in: ['admin', 'employee'] }, isDisabled: false, isSuspended: false },
+      'email'
+    );
+    return users.map(user => user.email).filter(email => email);
+  } catch (err) {
+    console.error('Error fetching admin and employee emails:', err.message);
+    return [];
+  }
+};
+
 exports.createAppointment = async (req, res) => {
   try {
-    const { name, email, phoneNumber, address, country, state, message, appointmentDate, appointmentTime } = req.body;
+    let { name, email, phoneNumber, address, country, state, message, appointmentDate, appointmentTime } = req.body;
+
+    // Trim and validate inputs
+    name = name ? String(name).trim() : '';
+    email = email ? String(email).trim().toLowerCase() : '';
+    phoneNumber = phoneNumber ? String(phoneNumber).trim() : '';
+    address = address ? String(address).trim() : '';
+    country = country ? String(country).trim() : '';
+    state = state ? String(state).trim() : '';
+    message = message ? String(message).trim() : '';
 
     // Basic validation
     if (!name || !email || !appointmentDate || !appointmentTime) {
       return res.status(400).json({ message: 'Name, email, appointment date, and time are required.' });
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format.' });
     }
 
     const newAppointment = new Appointment({
@@ -54,23 +83,32 @@ exports.createAppointment = async (req, res) => {
     `;
     await sendMail(email, 'Your Appointment Request with Tofar Logistics Agency', userEmailContent);
 
-    // --- Send Notification Email to Admin ---
-    const adminEmailContent = `
-      <p>New Appointment Request Received!</p>
-      <p>Details:</p>
-      <ul>
-        <li><strong>Name:</strong> ${name}</li>
-        <li><strong>Email:</strong> ${email}</li>
-        <li><strong>Phone:</strong> ${phoneNumber || 'N/A'}</li>
-        <li><strong>Date:</strong> ${formatDateForEmail(appointmentDate)}</li>
-        <li><strong>Time:</strong> ${appointmentTime}</li>
-        <li><strong>Message:</strong> ${message || 'N/A'}</li>
-        <li><strong>Booked By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
-        <li><strong>Appointment ID:</strong> ${newAppointment._id}</li>
-      </ul>
-      <p>Please log in to the admin panel to review and confirm this appointment.</p>
-    `;
-    await sendMail(process.env.EMAIL_USER, 'New Appointment Request | Tofar Logistics Agency', adminEmailContent);
+    // --- Send Notification Email to Admin and Employees ---
+    const adminEmployeeEmails = await getAdminAndEmployeeEmails();
+    if (adminEmployeeEmails.length > 0) {
+      try {
+        const adminEmailContent = `
+          <p>New Appointment Request Received!</p>
+          <p>Details:</p>
+          <ul>
+            <li><strong>Name:</strong> ${name}</li>
+            <li><strong>Email:</strong> ${email}</li>
+            <li><strong>Phone:</strong> ${phoneNumber || 'N/A'}</li>
+            <li><strong>Date:</strong> ${formatDateForEmail(appointmentDate)}</li>
+            <li><strong>Time:</strong> ${appointmentTime}</li>
+            <li><strong>Message:</strong> ${message || 'N/A'}</li>
+            <li><strong>Booked By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
+            <li><strong>Appointment ID:</strong> ${newAppointment._id}</li>
+          </ul>
+          <p>Please log in to the admin panel to review and confirm this appointment.</p>
+        `;
+        await sendMail(adminEmployeeEmails, 'New Appointment Request | Tofar Logistics Agency', adminEmailContent);
+      } catch (adminEmailError) {
+        console.warn('Warning: Failed to send appointment notification to admin/employees:', adminEmailError.message);
+      }
+    } else {
+      console.warn('Warning: No active admin or employee accounts found. Staff notification email not sent.');
+    }
 
     res.status(201).json({
       message: 'Appointment request submitted successfully. Check your email for confirmation.',
@@ -177,6 +215,28 @@ exports.deleteAppointment = async (req, res) => {
     `;
     await sendMail(deletedAppointment.email, 'Your Appointment Has Been Deleted', emailContent);
 
+    // --- Send Notification Email to Admin and Employees ---
+    const adminEmployeeEmails = await getAdminAndEmployeeEmails();
+    if (adminEmployeeEmails.length > 0) {
+      try {
+        const adminEmailContent = `
+          <p>Appointment Deleted!</p>
+          <p>Details for Appointment ID: ${deletedAppointment._id}</p>
+          <ul>
+            <li><strong>Name:</strong> ${deletedAppointment.name} (${deletedAppointment.email})</li>
+            <li><strong>Date:</strong> ${formatDateForEmail(deletedAppointment.appointmentDate)}</li>
+            <li><strong>Time:</strong> ${deletedAppointment.appointmentTime}</li>
+            <li><strong>Deleted By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
+          </ul>
+        `;
+        await sendMail(adminEmployeeEmails, 'Appointment Deleted Notification', adminEmailContent);
+      } catch (adminEmailError) {
+        console.warn('Warning: Failed to send admin/employee notification for deletion:', adminEmailError.message);
+      }
+    } else {
+      console.warn('Warning: No active admin or employee accounts found. Staff notification email not sent.');
+    }
+
     res.json({ message: 'Appointment deleted successfully.' });
   } catch (err) {
     console.error('Error deleting appointment:', err);
@@ -226,18 +286,27 @@ exports.rescheduleAppointment = async (req, res) => {
     `;
     await sendMail(appointment.email, 'Your Appointment Has Been Rescheduled', userEmailContent);
 
-    // --- Send Notification Email to Admin ---
-    const adminEmailContent = `
-      <p>Appointment Rescheduled!</p>
-      <p>Details for Appointment ID: ${appointment._id}</p>
-      <ul>
-        <li><strong>Donor:</strong> ${appointment.name} (${appointment.email})</li>
-        <li><strong>Original:</strong> ${formatDateForEmail(oldDate)} at ${oldTime}</li>
-        <li><strong>New:</strong> ${formatDateForEmail(newAppointmentDate)} at ${newAppointmentTime}</li>
-        <li><strong>Rescheduled By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
-      </ul>
-    `;
-    await sendMail(process.env.EMAIL_USER, 'Appointment Rescheduled Notification', adminEmailContent);
+    // --- Send Notification Email to Admin and Employees ---
+    const adminEmployeeEmails = await getAdminAndEmployeeEmails();
+    if (adminEmployeeEmails.length > 0) {
+      try {
+        const adminEmailContent = `
+          <p>Appointment Rescheduled!</p>
+          <p>Details for Appointment ID: ${appointment._id}</p>
+          <ul>
+            <li><strong>Client Name:</strong> ${appointment.name} (${appointment.email})</li>
+            <li><strong>Original:</strong> ${formatDateForEmail(oldDate)} at ${oldTime}</li>
+            <li><strong>New:</strong> ${formatDateForEmail(newAppointmentDate)} at ${newAppointmentTime}</li>
+            <li><strong>Rescheduled By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
+          </ul>
+        `;
+        await sendMail(adminEmployeeEmails, 'Appointment Rescheduled Notification', adminEmailContent);
+      } catch (adminEmailError) {
+        console.warn('Warning: Failed to send admin/employee notification for reschedule:', adminEmailError.message);
+      }
+    } else {
+      console.warn('Warning: No active admin or employee accounts found. Staff notification email not sent.');
+    }
 
     res.json({ message: 'Appointment rescheduled successfully.', appointment });
   } catch (err) {
@@ -269,19 +338,27 @@ exports.cancelAppointment = async (req, res) => {
     `;
     await sendMail(appointment.email, 'Your Appointment Has Been Cancelled', userEmailContent);
 
-    // --- Send Notification Email to Admin ---
-    const adminEmailContent = `
-      <p>Appointment Cancelled!</p>
-      <p>Details for Appointment ID: ${appointment._id}</p>
-      <ul>
-        <li><strong>Donor:</strong> ${appointment.name} (${appointment.email})</li>
-        <li><strong>Original Date:</strong> ${formatDateForEmail(appointment.appointmentDate)}</li>
-        <li><strong>Original Time:</strong> ${appointment.appointmentTime}</li>
-        <li><strong>Cancelled By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
-      </ul>
-    `;
-    await sendMail(process.env.EMAIL_USER, 'Appointment Cancelled Notification', adminEmailContent);
-
+    // --- Send Notification Email to Admin and Employees ---
+    const adminEmployeeEmails = await getAdminAndEmployeeEmails();
+    if (adminEmployeeEmails.length > 0) {
+      try {
+        const adminEmailContent = `
+          <p>Appointment Cancelled!</p>
+          <p>Details for Appointment ID: ${appointment._id}</p>
+          <ul>
+            <li><strong>Client Name:</strong> ${appointment.name} (${appointment.email})</li>
+            <li><strong>Original Date:</strong> ${formatDateForEmail(appointment.appointmentDate)}</li>
+            <li><strong>Original Time:</strong> ${appointment.appointmentTime}</li>
+            <li><strong>Cancelled By (User ID):</strong> ${req.user ? req.user.id : 'Visitor'}</li>
+          </ul>
+        `;
+        await sendMail(adminEmployeeEmails, 'Appointment Cancelled Notification', adminEmailContent);
+      } catch (adminEmailError) {
+        console.warn('Warning: Failed to send admin/employee notification for cancellation:', adminEmailError.message);
+      }
+    } else {
+      console.warn('Warning: No active admin or employee accounts found. Staff notification email not sent.');
+    }
 
     res.json({ message: 'Appointment cancelled successfully.', appointment });
   } catch (err) {

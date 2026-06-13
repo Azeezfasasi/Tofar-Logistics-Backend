@@ -21,6 +21,26 @@ const sendMail = async (to, subject, html) => {
 
   const recipients = Array.isArray(to) ? to : String(to).split(',').map(s => s.trim()).filter(Boolean);
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const invalidEmails = recipients.filter(email => !emailRegex.test(email));
+  
+  if (invalidEmails.length > 0) {
+    console.error(`[EMAIL ERROR] Invalid email format(s): ${invalidEmails.join(', ')}`);
+    const error = new Error(`Invalid email format(s): ${invalidEmails.join(', ')}`);
+    error.code = 'INVALID_EMAIL_FORMAT';
+    throw error;
+  }
+
+  if (recipients.length === 0) {
+    console.error('[EMAIL ERROR] No valid recipients provided');
+    const error = new Error('No valid recipients provided');
+    error.code = 'NO_RECIPIENTS';
+    throw error;
+  }
+
+  console.log(`[EMAIL] Sending email to: ${recipients.join(', ')} | Subject: ${subject}`);
+
   const payload = {
     sender: { name: SENDER_NAME, email: SENDER_EMAIL },
     to: recipients.map(email => ({ email })),
@@ -40,8 +60,10 @@ const sendMail = async (to, subject, html) => {
 
     try {
       const resp = await axios.post(url, payload, config);
+      console.log(`[EMAIL SUCCESS] Email sent to ${recipients.join(', ')}`);
       return resp.data;
     } catch (err) {
+      console.error(`[EMAIL FAILED] Error sending email to ${recipients.join(', ')}:`, err.message);
       // Enhance error with Brevo response body when available
       if (err.response && err.response.data) {
         const e = new Error(`Brevo API error: ${JSON.stringify(err.response.data)}`);
